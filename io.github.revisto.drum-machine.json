@@ -32,7 +32,7 @@
                 {
                     "type" : "git",
                     "url" : "https://github.com/revisto/drum-machine.git",
-                    "commit": "300bf0a1bde71eb34268c228bc9dfaf299741029"
+                    "commit": "1aa72e11dc71ded615bbfe9bb850a6156ef627d7"
                 }
             ]
         }
