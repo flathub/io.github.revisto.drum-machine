@@ -1,0 +1,116 @@
+name: Update Flathub App
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Specific tag to update to (optional)'
+        required: false
+        type: string
+  repository_dispatch:
+    types: [new-release]
+
+jobs:
+  update-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install flatpak-builder-tools
+        run: |
+          pip install flatpak-builder-tools
+
+      - name: Get latest tag from drum-machine repository
+        id: get-latest-tag
+        run: |
+          if [ "${{ github.event.inputs.tag }}" != "" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            LATEST_TAG=$(curl -s https://api.github.com/repos/revisto/drum-machine/tags | jq -r '.[0].name' | head -1)
+            echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if update is needed
+        id: check-update
+        run: |
+          CURRENT_TAG=$(grep '"tag"' io.github.revisto.drum-machine.json | sed 's/.*"tag": "v\(.*\)".*/\1/')
+          LATEST_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          LATEST_TAG_CLEAN=$(echo $LATEST_TAG | sed 's/v//')
+          
+          echo "Current tag: $CURRENT_TAG"
+          echo "Latest tag: $LATEST_TAG_CLEAN"
+          
+          if [ "$CURRENT_TAG" = "$LATEST_TAG_CLEAN" ]; then
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "No update needed - already at latest version"
+          else
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "Update needed - current: $CURRENT_TAG, latest: $LATEST_TAG_CLEAN"
+          fi
+
+      - name: Update main manifest
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          LATEST_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          sed -i "s/\"tag\": \"v[0-9.]*\"/\"tag\": \"$LATEST_TAG\"/" io.github.revisto.drum-machine.json
+          echo "Updated tag to $LATEST_TAG"
+
+      - name: Update Python dependencies
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          python -m flatpak_module_tools.x_checker python-dependencies.json
+
+      - name: Create update branch
+        id: create-branch
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          LATEST_TAG=${{ steps.get-latest-tag.outputs.tag }}
+          LATEST_TAG_CLEAN=$(echo $LATEST_TAG | sed 's/v//')
+          BRANCH_NAME="update-to-$LATEST_TAG_CLEAN"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "Update to $LATEST_TAG
+
+          - Update drum-machine to $LATEST_TAG
+          - Update Python dependencies"
+          git push origin "$BRANCH_NAME"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check-update.outputs.update_needed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.create-branch.outputs.branch_name }}
+          title: "Update to ${{ steps.get-latest-tag.outputs.tag }}"
+          body: |
+            ## Update to ${{ steps.get-latest-tag.outputs.tag }}
+            
+            This PR updates the Flathub app to the latest release of drum-machine.
+            
+            ### Changes:
+            - Update drum-machine to ${{ steps.get-latest-tag.outputs.tag }}
+            - Update Python dependencies to latest versions
+            
+            ### Checklist:
+            - [x] Updated main manifest with new tag
+            - [x] Updated Python dependencies
+            - [ ] Test build passes
+            - [ ] Ready for merge
+            
+            This PR was automatically created by the update workflow.
+          labels: |
+            update
+            automated
+          assignees: revisto
+          reviewers: revisto 
