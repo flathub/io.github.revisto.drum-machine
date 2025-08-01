@@ -7,8 +7,6 @@ on:
         description: 'Specific tag to update to (optional)'
         required: false
         type: string
-  repository_dispatch:
-    types: [new-release]
 
 jobs:
   update-app:
