@@ -1,7 +1,7 @@
 {
     "id" : "io.github.revisto.drum-machine",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "47",
+    "runtime-version" : "48",
     "sdk" : "org.gnome.Sdk",
     "command" : "drum-machine",
     "finish-args" : [
@@ -32,7 +32,7 @@
                 {
                     "type" : "git",
                     "url" : "https://github.com/revisto/drum-machine.git",
-                    "tag": "v1.4.0"
+                    "tag": "v1.5.0"
                 }
             ]
         }
