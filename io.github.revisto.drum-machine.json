@@ -25,6 +25,19 @@
     "modules" : [
         "python-dependencies.json",
         {
+            "name": "blueprint-compiler",
+            "buildsystem": "meson",
+            "cleanup": ["*"],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://gitlab.gnome.org/GNOME/blueprint-compiler",
+                    "tag": "0.18.0"
+                }
+            ]
+        },
+        "python-dependencies.json",
+        {
             "name" : "drum-machine",
             "builddir" : true,
             "buildsystem" : "meson",
