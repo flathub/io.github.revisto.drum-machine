@@ -12,16 +12,8 @@
         "--socket=pulseaudio"
     ],
     "cleanup" : [
-        "/include",
-        "/lib/pkgconfig",
-        "/man",
-        "/share/doc",
-        "/share/gtk-doc",
-        "/share/man",
-        "/share/pkgconfig",
-        "*.la",
-        "*.a"
-    ],
+        "/include"
+    ],    
     "modules" : [
         "python-dependencies.json",
         {
